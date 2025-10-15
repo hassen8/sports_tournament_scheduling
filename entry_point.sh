@@ -1,103 +1,107 @@
 #!/usr/bin/env bash
-
 set -Eeuo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
-APPROACHES = (CP MIP SMT)
+# =============================
+# Configurable Parameters
+# =============================
+APPROACHES=("CP" "MIP" "SMT")
+DEFAULT_INSTANCE=6
 
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-
-usage() {
-  cat << EOF # remove the space between << and EOF, this is due to web plugin issue
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-f] -p param_value arg1 [arg2...]
-
-.
-
-Available options:
-
--h, --help      Print this help and exit
--v, --verbose   Print script debug info
--f, --flag      Some flag description
--p, --param     Some param description
-EOF
-  exit
-}
-
+# =============================
+# Utility Functions
+# =============================
 cleanup() {
   trap - SIGINT SIGTERM ERR EXIT
-  # script cleanup here
-}
-
-setup_colors() {
-  if [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
-    NOFORMAT='\033[0m' RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
-  else
-    NOFORMAT='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
-  fi
 }
 
 msg() {
-  echo >&2 -e "${1-}"
+  echo -e "[$(date '+%H:%M:%S')] ${1-}"
 }
 
 die() {
   local msg=$1
-  local code=${2-1} # default exit status 1
-  msg "$msg"
+  local code=${2-1}
+  echo >&2 "Error: $msg"
   exit "$code"
 }
 
-parse_params() {
-  # default values of variables set from params
-  flag=0
-  param=''
+usage() {
+  cat << EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS]
 
-  while :; do
-    case "${1-}" in
-    -h | --help) usage ;;
-    -v | --verbose) set -x ;;
-    -f | --flag) flag=1 ;; # example flag
-    -p | --param) # example named parameter
-      param="${2-}"
-      shift
-      ;;
-    -?*) die "Unknown option: $1" ;;
-    *) break ;;
-    esac
-    shift
-  done
+Options:
+  -a, --approach    Approach to run (CP | MIP | SMT). Default: all available approaches
+  -n, --instance    Instance size (e.g., 6, 8, 10, 12). Default: ${DEFAULT_INSTANCE}
+  -h, --help        Show this help and exit
 
-  args=("$@")
-
-  # check required params and arguments
-  [[ -z "${param-}" ]] && die "Missing required parameter: param"
-  [[ ${#args[@]} -eq 0 ]] && die "Missing script arguments"
-
-  return 0
+Examples:
+  ./entrypoint.sh --approach CP --instance 8
+  ./entrypoint.sh
+EOF
+  exit 0
 }
 
-parse_params "$@"
-setup_colors
+# =============================
+# Parse Command-Line Arguments
+# =============================
+parse_params() {
+  SELECTED_APPROACH=""
+  INSTANCE="$DEFAULT_INSTANCE"
 
-# script logic here
-if [ "$#" -eq 0 ]; then
-    echo "(entrypoint) No arguments passed, running all approaches with default arguments"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -a|--approach)
+        SELECTED_APPROACH="$2"
+        shift 2
+        ;;
+      -n|--instance)
+        INSTANCE="$2"
+        shift 2
+        ;;
+      -h|--help)
+        usage
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+}
+
+# =============================
+# Main Logic
+# =============================
+main() {
+  parse_params "$@"
+
+  if [[ -z "$SELECTED_APPROACH" ]]; then
+    msg "(entrypoint) No specific approach selected — running all available approaches."
     for ap in "${APPROACHES[@]}"; do
-        FILE = "/cdmo_project/source/${ap}/run.py"
-        if [ -f "$FILE" ]; then
-            echo "(entrypoint) Running $ap approach"
-            python "$FILE" 
-        else
-            echo "(entrypoint) File $FILE does not exist, skipping $ap approach"
-        fi 
-        done
-    echo "[entrypoint] All done."
-    exit 0
-fi
+      run_approach "$ap" "$INSTANCE"
+    done
+  else
+    run_approach "$SELECTED_APPROACH" "$INSTANCE"
+  fi
 
+  msg "[entrypoint] All tasks completed successfully."
+}
 
+run_approach() {
+  local approach="$1"
+  local instance="$2"
+  local file="source/${approach}/run.py"
 
-msg "${RED}Read parameters:${NOFORMAT}"
-msg "- flag: ${flag}"
-msg "- param: ${param}"
-msg "- arguments: ${args[*]-}"
+  msg "(entrypoint) Running ${approach} approach with instance=${instance}"
+
+  if [[ -f "$file" ]]; then
+    python3 "$file" "-n" "$instance"
+  else
+    msg "(entrypoint) File not found: $file — skipping ${approach} approach."
+  fi
+}
+
+# =============================
+# Entrypoint Execution
+# =============================
+main "$@"
