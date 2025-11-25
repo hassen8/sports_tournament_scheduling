@@ -1,6 +1,7 @@
+include "lex_less.mzn";
 include "alldifferent.mzn";
 include "global_cardinality_low_up.mzn";
-include "lex_less.mzn";
+include "global_cardinality.mzn";
 
 % =====================
 % Parameters

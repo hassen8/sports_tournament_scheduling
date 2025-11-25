@@ -28,31 +28,31 @@ OUTPUT_DIR = Path(f'{BASE_DIR.parent.parent}/res/CP')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 MODEL_NAMES = {
-    # "gecode_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'gecode', 'opt':False, 'use_ss':0  },
-    # "gecode_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'gecode', 'opt':False, 'use_ss':0  },
-    # "gecode_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'gecode', 'opt':True, 'use_ss':0  },
-    # "gecode_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'gecode', 'opt':True, 'use_ss':0  },
-    # "chuffed_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':0  },
-    # "chuffed_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':0  },
-    # "chuffed_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':0  },
-    # "chuffed_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'chuffed', 'opt':True, 'use_ss':0  },
-    # "cp_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'cp', 'opt':False, 'use_ss':0  },
-    # "cp_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'cp', 'opt':False, 'use_ss':0  },
-    # "cp_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'cp', 'opt':True, 'use_ss':0  },
-    # "cp_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'cp', 'opt':True, 'use_ss':0  },
+    "gecode_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'gecode', 'opt':False, 'use_ss':0  },
+    "gecode_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'gecode', 'opt':False, 'use_ss':0  },
+    "gecode_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'gecode', 'opt':True, 'use_ss':0  },
+    "gecode_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'gecode', 'opt':True, 'use_ss':0  },
+    "chuffed_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':0  },
+    "chuffed_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':0  },
+    "chuffed_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':0  },
+    "chuffed_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':0  },
+    "cp_reg" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'cp', 'opt':False, 'use_ss':0  },
+    "cp_sb" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'cp', 'opt':False, 'use_ss':0  },
+    "cp_opt_reg" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'cp', 'opt':True, 'use_ss':0  },
+    "cp_opt_sb" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'cp', 'opt':True, 'use_ss':0  },
     
-    # "gecode_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'gecode', 'opt':False, 'use_ss':1  },
-    # "gecode_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'gecode', 'opt':False, 'use_ss':1  },
-    # "gecode_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'gecode', 'opt':True, 'use_ss':1  },
-    # "gecode_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'gecode', 'opt':True, 'use_ss':1  },
-    # "chuffed_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':1  },
-    # "chuffed_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':1  },
-    # "chuffed_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':1  },
-    # "chuffed_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'chuffed', 'opt':True, 'use_ss':1  },
-    # "cp_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'cp', 'opt':False, 'use_ss':1  },
-    # "cp_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'cp', 'opt':False, 'use_ss':1  },
-    # "cp_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'cp', 'opt':True, 'use_ss':1  },
-    # "cp_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb', 'solver':'cp', 'opt':True, 'use_ss':1  },
+    "gecode_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'gecode', 'opt':False, 'use_ss':1  },
+    "gecode_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'gecode', 'opt':False, 'use_ss':1  },
+    "gecode_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'gecode', 'opt':True, 'use_ss':1  },
+    "gecode_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'gecode', 'opt':True, 'use_ss':1  },
+    "chuffed_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':1  },
+    "chuffed_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'chuffed', 'opt':False, 'use_ss':1  },
+    "chuffed_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':1  },
+    "chuffed_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'chuffed', 'opt':True, 'use_ss':1  },
+    "cp_reg_ss" :{ 'model':f'{BASE_DIR}/cp_model.mzn', 'solver':'cp', 'opt':False, 'use_ss':1  },
+    "cp_sb_ss" :{ 'model':f'{BASE_DIR}/cp_model_sb.mzn', 'solver':'cp', 'opt':False, 'use_ss':1  },
+    "cp_opt_reg_ss" :{ 'model':f'{BASE_DIR}/cp_optimal.mzn', 'solver':'cp', 'opt':True, 'use_ss':1  },
+    "cp_opt_sb_ss" :{ 'model':f'{BASE_DIR}/cp_optimal_sb.mzn', 'solver':'cp', 'opt':True, 'use_ss':1  },
 }
 
 unsat_template = {
@@ -67,6 +67,8 @@ unsat_template = {
 # Helper: run instance
 # ======================
 def run_model(model_file, solver_name, n, ss, opt=False):
+    
+    print(f"Running {model_file} with {solver_name}, n={n} ...")
     model = minizinc.Model(model_file)
     solver = minizinc.Solver.lookup(solver_name)
     
@@ -75,7 +77,6 @@ def run_model(model_file, solver_name, n, ss, opt=False):
     inst["n"] = n
     inst["use_ss"] = ss
 
-    print(f"Running {model_file} with {solver_name}, n={n} ...")
 
     with contextlib.redirect_stderr(io.StringIO()):
         result = inst.solve(timeout=timedelta(seconds=300))
@@ -97,14 +98,15 @@ def run_model(model_file, solver_name, n, ss, opt=False):
     return res
 
 
-
-mod_type = int(input("Select what type of models you want to run \n 1. Decision Models \n 2. Optimization Models \n 3. All\n\noption:"))
-if mod_type == 1:
-    model_names = {k: v for k, v in MODEL_NAMES.items() if not v.get("opt", False)}
-elif mod_type == 2:
-    model_names = {k: v for k, v in MODEL_NAMES.items() if v.get("opt", False)}
-else:
+if args.n==0:
+    print('---------------------------start---------------------------')
     model_names = MODEL_NAMES
+else:
+    mod_type = int(input("Select what type of models you want to run \n 1. Decision Models \n 2. Optimization Models \n 3. All\n\noption: "))
+    if mod_type == 1:
+        model_names = {k: v for k, v in MODEL_NAMES.items() if not v.get("opt", False)}
+    elif mod_type == 2:
+        model_names = {k: v for k, v in MODEL_NAMES.items() if v.get("opt", False)}
     
 for n in N_VALUE:
     all_results = {}
@@ -120,10 +122,18 @@ for n in N_VALUE:
         print('************************************')
 
     out_file = OUTPUT_DIR / f"{n}.json"
-    with out_file.open("r+", encoding="utf-8") as f:
-        existing_results = json.load(f) if out_file.stat().st_size > 0 else {}
+    existing_results = {}
+
+    if out_file.exists():
+        try:
+            with out_file.open("r", encoding="utf-8") as f:
+                if out_file.stat().st_size > 0:
+                    existing_results = json.load(f)
+        except json.JSONDecodeError:
+            print(f"Warning: {out_file} was corrupted or empty. Starting fresh.")
+            existing_results = {}
     existing_results.update(all_results)
-    all_results = existing_results
     with out_file.open("w", encoding="utf-8") as f:
-        json.dump(all_results, f, indent=2, ensure_ascii=False)
+        json.dump(existing_results, f, indent=2, ensure_ascii=False)
+
     print(f"Wrote results to {out_file}")

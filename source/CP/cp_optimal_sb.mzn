@@ -1,6 +1,7 @@
+include "global_cardinality_low_up.mzn";
 include "global_cardinality.mzn";
 include "alldifferent.mzn";
-include "global_cardinality.mzn";
+include "lex_less.mzn";
 
 % =====================
 % Parameters
@@ -22,26 +23,31 @@ array[Weeks, Periods, 1..2] of var Teams: match;
 % Constraints
 % =====================
 
-
 % 1. each team plays exactly once per week
 constraint forall(w in Weeks)(
-    global_cardinality([match[w,p,s] | p in Periods, s in 1..2],
-                       [t | t in Teams],
-                       [1 | t in Teams]) 
+    alldifferent([match[w,p,s] | p in Periods, s in 1..2]) 
 );
 
 % 2. each team plays at most twice in the same period
-constraint forall(p in Periods, t in Teams) (
-    sum(w in Weeks)(bool2int(match[w,p,1] = t) + bool2int(match[w,p,2] = t)) <= 2
+constraint forall(p in Periods)(
+    global_cardinality_low_up(
+        [match[w,p,s] | w in Weeks, s in 1..2], 
+        Teams,                                  
+        [0 | t in Teams],                      
+        [2 | t in Teams]                      
+    )
 );
 
-% 3. each pair of teams plays exactly once (using alldifferent)
-constraint forall(a in Teams, b in Teams where a < b) (
-  sum(w in Weeks, p in Periods)(
-    bool2int(match[w,p,1] = a /\ match[w,p,2] = b) +
-    bool2int(match[w,p,1] = b /\ match[w,p,2] = a)
-  ) = 1
-);
+% 3. each pair of teams plays exactly once
+constraint forall(t in Teams) (
+    alldifferent( [ sum(p in Periods)(
+                      if match[w,p,1] == t then match[w,p,2] 
+                      else if match[w,p,2] == t then match[w,p,1] 
+                      else 0 
+                      endif 
+                      endif ) | w in Weeks ]));
+
+
 
 % =========================
 % Symmetry Breaking

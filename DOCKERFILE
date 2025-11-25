@@ -55,6 +55,6 @@ COPY entry_point.sh ./entry_point.sh
 # make entrypoint executable
 RUN chmod +x entry_point.sh
 
-# ENTRYPOINT ["./entry_point.sh"]
+ENTRYPOINT ["./entry_point.sh"]
 
-CMD ['']
+CMD []
