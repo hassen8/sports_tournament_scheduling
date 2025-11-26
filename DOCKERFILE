@@ -37,6 +37,8 @@ RUN wget https://github.com/MiniZinc/MiniZincIDE/releases/download/2.9.4/MiniZin
 
 # Set MiniZinc path
 ENV PATH="/opt/minizinc/bin:$PATH"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib:usr/lib/x86_64-linux-gnu/:/opt/minizinc/lib"
+ENV QT_PLUGIN_PATH="$QT_PLUGIN_PATH:/opt/minizinc/plugins"
 
 RUN pip install minizinc
 
