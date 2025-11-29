@@ -2,30 +2,18 @@ import os
 import json
 from pathlib import Path
 
-# -----------------------------
-# Load json safely
-# -----------------------------
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# -----------------------------
-# Detect category of model key
-# -----------------------------
 def is_plain(k):     return k.startswith("MIP_plain")
 def is_sym(k):       return k.startswith("MIP_symmetry")
 def is_impl(k):      return k.startswith("MIP_implied")
 def is_opt(k):       return k.startswith("MIP_opt")
 
-# -----------------------------
-# Extract numeric N from filename "14.json"
-# -----------------------------
 def extract_n(filename):
     return int(filename.replace(".json", ""))
 
-# -----------------------------
-# MAIN SCRIPT
-# -----------------------------
 def main():
 
     input_dir = Path("./")   # folder WITH your JSON files
@@ -34,15 +22,11 @@ def main():
         key=lambda x: extract_n(x)
     )
 
-    # Storage for markdown rows
     table1 = []   # Decision models → time (300 → NA)
     table2 = []   # Optimization → obj (null → NA)
     table3 = []   # Decision models raw times
     table4 = []   # Optimization raw obj
 
-    # ------------------------------------------------------
-    # PROCESS EACH JSON FILE
-    # ------------------------------------------------------
     for jf in json_files:
         N = extract_n(jf)
         data = load_json(input_dir / jf)
@@ -52,45 +36,29 @@ def main():
         impl_keys  = sorted([k for k in data.keys() if is_impl(k)])
         opt_keys   = sorted([k for k in data.keys() if is_opt(k)])
 
-        # ------------------------------------------------------
-        # TABLE 1 : Decision models — time, 300 -> NA
-        # ------------------------------------------------------
         row1 = [str(N)]
         for k in plain_keys + sym_keys + impl_keys:
             t = data[k].get("time", None)
             row1.append("NA" if t == 300 else str(t))
         table1.append(row1)
 
-        # ------------------------------------------------------
-        # TABLE 2 : Optimization — obj, null -> NA
-        # ------------------------------------------------------
         row2 = [str(N)]
         for k in opt_keys:
             obj = data[k].get("obj", None)
             row2.append("NA" if obj is None else str(obj))
         table2.append(row2)
-
-        # ------------------------------------------------------
-        # TABLE 3 : Decision models — raw time
-        # ------------------------------------------------------
+        
         row3 = [str(N)]
         for k in plain_keys + sym_keys + impl_keys:
             t = data[k].get("time", None)
             row3.append(str(t))
         table3.append(row3)
-
-        # ------------------------------------------------------
-        # TABLE 4 : Optimization — raw obj
-        # ------------------------------------------------------
+        
         row4 = [str(N)]
         for k in opt_keys:
             obj = data[k].get("obj", None)
             row4.append(str(obj))
         table4.append(row4)
-
-    # ------------------------------------------------------
-    # BUILD MARKDOWN
-    # ------------------------------------------------------
     md = []
 
     def make_table(title, rows, header):
@@ -117,9 +85,6 @@ def main():
     md.append(make_table("Table 3 — Decision models (raw time)", table3, header3))
     md.append(make_table("Table 4 — Optimization model (raw obj)", table4, header4))
 
-    # ------------------------------------------------------
-    # WRITE FILE (UTF-8 FIX!)
-    # ------------------------------------------------------
     with open("mip_results.md", "w", encoding="utf-8") as f:
         f.write("\n".join(md))
 
@@ -127,3 +92,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
