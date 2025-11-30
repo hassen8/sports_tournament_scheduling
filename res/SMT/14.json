@@ -1,5 +1,5 @@
 {
-  "SMT_DEC_14": {
+  "SMT_Z3": {
     "time": 300,
     "optimal": false,
     "obj": null,

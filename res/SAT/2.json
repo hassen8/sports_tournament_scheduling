@@ -3,25 +3,53 @@
     "time": 0,
     "optimal": true,
     "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "z3_sat_sb": {
     "time": 0,
     "optimal": true,
     "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "z3_opt": {
     "time": 0,
     "optimal": true,
-    "obj": null,
-    "sol": []
+    "obj": 1,
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "z3_opt_sb": {
     "time": 0,
     "optimal": true,
-    "obj": null,
-    "sol": []
+    "obj": 1,
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "cnf": {
     "time": 0,
@@ -32,6 +60,18 @@
   "cnf_sb": {
     "time": 0,
     "optimal": true,
+    "obj": null,
+    "sol": []
+  },
+  "maxsat": {
+    "time": 300,
+    "optimal": false,
+    "obj": null,
+    "sol": []
+  },
+  "maxsat_sb": {
+    "time": 300,
+    "optimal": false,
     "obj": null,
     "sol": []
   },

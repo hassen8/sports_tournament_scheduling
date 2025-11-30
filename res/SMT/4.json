@@ -1,47 +1,47 @@
 {
-  "z3_sat": {
+  "SMT2_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "z3_sat_sb": {
+  "SMT2_OPENSMT": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "z3_opt": {
+  "SMT2_SB_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "z3_opt_sb": {
+  "SMT2_SB_OPENSMT": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "cnf": {
+  "SMT2_OPT_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "cnf_sb": {
+  "SMT2_OPT_OPENSMT": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "glucose": {
+  "SMT2_OPT_SB_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "glucose_sb": {
+  "SMT2_OPT_SB_OPENSMT": {
     "time": 0,
     "optimal": true,
     "obj": null,
