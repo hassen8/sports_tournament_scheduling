@@ -1,78 +1,59 @@
 FROM python:3.10-slim
 
-# Set non-interactive mode for apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install base dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        wget \
-        curl \
-        unzip \
-        ca-certificates \
-        libgmp-dev \
-        libffi-dev \
-        libboost-dev \
-        git \
-        cmake \
-        && rm -rf /var/lib/apt/lists/*
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential wget curl unzip git cmake ca-certificates \
+    libgmp-dev libffi-dev libboost-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-
-# ===== Install Z3 CLI =====
-RUN wget https://github.com/Z3Prover/z3/releases/download/z3-4.12.2/z3-4.12.2-x64-glibc-2.31.zip -O /tmp/z3.zip && \
+# Z3 CLI
+RUN wget https://github.com/Z3Prover/z3/releases/download/z3-4.12.2/z3-4.12.2-x64-glibc-2.35.zip -O /tmp/z3.zip && \
     unzip /tmp/z3.zip -d /opt/z3 && \
-    cp /opt/z3/bin/z3 /usr/local/bin/z3 && \
+    mv /opt/z3/z3-4.12.2-x64-glibc-2.35/bin/z3 /usr/local/bin/z3 && \
     chmod +x /usr/local/bin/z3 && \
     rm -rf /tmp/z3.zip /opt/z3
 
+# CVC5
+#RUN wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-x86_64-static -O /usr/local/bin/cvc5 && \
+#    chmod +x /usr/local/bin/cvc5
 
-# ===== Install CVC5 (static binary) =====
-RUN wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-x86_64-static -O /usr/local/bin/cvc5 && \
-    chmod +x /usr/local/bin/cvc5
-
-
-# ===== Install Yices2 =====
-RUN wget https://yices.csl.sri.com/releases/2.6.4/yices-2.6.4-x86_64-pc-linux-gnu-static-gmp.tar.gz -O /tmp/yices.tar.gz && \
+# Yices 2.6.2
+RUN wget https://yices.csl.sri.com/releases/2.6.2/yices-2.6.2-x86_64-pc-linux-gnu-static-gmp.tar.gz -O /tmp/yices.tar.gz && \
     tar -xzf /tmp/yices.tar.gz -C /opt && \
-    cp /opt/yices-*/bin/yices /usr/local/bin/yices && \
-    cp /opt/yices-*/bin/yices-smt2 /usr/local/bin/yices-smt2 && \
+    mv /opt/yices-*/bin/yices /usr/local/bin/yices && \
+    mv /opt/yices-*/bin/yices-smt2 /usr/local/bin/yices-smt2 && \
     chmod +x /usr/local/bin/yices* && \
     rm -rf /tmp/yices.tar.gz /opt/yices-*
 
-
-# ===== Install OpenSMT =====
-RUN wget https://github.com/usi-verification-and-security/opensmt/releases/download/v2.7.2/opensmt-2.7.2-linux-x64.tar.gz -O /tmp/opensmt.tar.gz && \
+# OpenSMT 2.5.2
+RUN wget https://github.com/usi-verification-and-security/opensmt/releases/download/2.5.2/opensmt-2.5.2-linux-x86_64.tar.gz -O /tmp/opensmt.tar.gz && \
     tar -xzf /tmp/opensmt.tar.gz -C /opt && \
-    cp /opt/opensmt*/bin/opensmt /usr/local/bin/opensmt && \
+    mv /opt/opensmt-*/bin/opensmt /usr/local/bin/opensmt && \
     chmod +x /usr/local/bin/opensmt && \
-    rm -rf /tmp/opensmt.tar.gz /opt/opensmt*
+    rm -rf /tmp/opensmt.tar.gz /opt/opensmt-*
 
-
-# ===== Install Open-WBO =====
+# Open-WBO
 RUN wget https://sat.inesc-id.pt/~mikolas/sw/open-wbo-2.0-linux -O /usr/local/bin/open-wbo && \
     chmod +x /usr/local/bin/open-wbo
 
-
-# ===== Install Glucose =====
+# Glucose
 RUN git clone https://github.com/audemard/glucose.git /tmp/glucose && \
     cd /tmp/glucose/simp && make r && \
     mv /tmp/glucose/simp/glucose_release /usr/local/bin/glucose && \
     chmod +x /usr/local/bin/glucose && \
     rm -rf /tmp/glucose
 
-
-# ===== Install Python dependencies =====
+# Python packages
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-
-# ===== Copy project =====
+# Copy project
 WORKDIR /sports_tournament_scheduling
 COPY . .
 
-# Entry point
-RUN chmod +x entry_point.sh
+# Entrypoint
+RUN sed -i 's/\r$//' entry_point.sh && chmod +x entry_point.sh
 ENTRYPOINT ["./entry_point.sh"]
-
 CMD []
