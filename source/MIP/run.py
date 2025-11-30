@@ -1,3 +1,4 @@
+import argparse
 import time
 from pathlib import Path
 from amplpy import AMPL
@@ -128,7 +129,19 @@ def run_all(n):
     write_result_json(str(outfile), full_data=results)
     print(f"\nSaved: {outfile}\n")
 
-
 if __name__ == "__main__":
-    for n in [6, 8,10,12,14,16]:
-        run_all(n)
+    parser = argparse.ArgumentParser(description="Run MIP optimization models.")
+    parser.add_argument("-n", type=int, help="Instance size to run. Pass 0 to run all default instances.")
+    
+    args = parser.parse_args()
+    inst = int(args.n) 
+
+    # Default instances logic
+    if inst == 0:
+        default_instances = [6, 8, 10, 12, 14, 16]
+        print(f"Argument is 0. Running all default instances: {default_instances}")
+        for n in default_instances:
+            run_all(n)
+    else:
+        print(f"Running specific instance: n = {inst}")
+        run_all(inst)
