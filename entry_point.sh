@@ -76,11 +76,11 @@ get_user_input() {
 
   # 2. Select Instance Size
   while true; do
-    read -r -p "Enter Instance Size [Default: ${DEFAULT_INSTANCE}]: " input_n
+    read -r -p "Enter Instance Size [hit enter to run all instance size from (6-16)]: " input_n
     
-    # If user hits enter, use default
+    # If user hits enter, run all instances
     if [[ -z "$input_n" ]]; then
-      INSTANCE="$DEFAULT_INSTANCE"
+      INSTANCE=0
       break
     fi
 

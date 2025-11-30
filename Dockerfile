@@ -124,8 +124,8 @@ COPY . .
 
 # Fix potential Windows line endings in entry_point.sh (common issue when sharing code)
 # and ensure it is executable
-RUN chmod +x entry_point2.sh
+RUN chmod +x entry_point.sh
 
-ENTRYPOINT ["./entry_point2.sh"]
+ENTRYPOINT ["./entry_point.sh"]
 
 CMD []

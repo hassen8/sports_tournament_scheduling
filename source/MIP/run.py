@@ -24,10 +24,10 @@ def solve_ampl(model_file, solver_name, n):
 
     
     ampl.setOption("gurobi_options",
-                    "timelimit=300 mipgap=0 outlev=0 threads=1 seed=0")
+                    "timelimit=300 mipgap=0 outlev=0")
 
     ampl.setOption("cplex_options",
-                   "timelimit=300 mipgap=0 display=0 threads=1 deterministic=1 randomseed=0")
+                   "timelimit=300 mipgap=0 display=0")
 
     
     ampl.read(model_file)
