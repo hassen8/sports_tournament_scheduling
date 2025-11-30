@@ -12,10 +12,8 @@ OUTPUT_DIR = ROOT_DIR / "res" / "SAT"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DIMACS_DIR = OUTPUT_DIR / "dimacs"
-WCNF_DIR   = OUTPUT_DIR / "wcnf"
 
 GLUCOSE = "glucose"
-OPEN_WBO = "open-wbo"
 
 Z3_MODELS = {
     "z3_sat"       : {"script": "sat_z3.py",        "opt": False},
@@ -24,20 +22,16 @@ Z3_MODELS = {
     "z3_opt_sb"    : {"script": "sat_z3_opt_sb.py", "opt": True},
 }
 
-CNF_MODELS = {
-    "cnf"    : {"generator": "sat_dimacs.py", "sym": False},
-    "cnf_sb" : {"generator": "sat_dimacs.py", "sym": True},
-}
-
-WCNF_MODELS = {
-    "maxsat"    : {"generator": "sat_wcnf.py", "sym": False},
-    "maxsat_sb" : {"generator": "sat_wcnf.py", "sym": True},
+# Renamed CNF models → Glucose models
+GLUCOSE_MODELS = {
+    "glucose"    : {"generator": "sat_dimacs.py", "sym": False},
+    "glucose_sb" : {"generator": "sat_dimacs.py", "sym": True},
 }
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", type=int, default=0)
 parser.add_argument("--mode", type=str, default="all",
-                    choices=["z3", "cnf", "maxsat", "all"])
+                    choices=["z3", "glucose", "all"])
 parser.add_argument("--decision_only", action="store_true")
 parser.add_argument("--opt_only", action="store_true")
 args = parser.parse_args()
@@ -46,6 +40,7 @@ if args.n == 0:
     N_VALUES = [6, 8, 10, 12, 16]
 else:
     N_VALUES = [args.n]
+
 
 def load_json(path: Path):
     if not path.exists():
@@ -56,11 +51,13 @@ def load_json(path: Path):
     except:
         return {}
 
+
 def safe_update_json(json_path, entry):
     data = load_json(json_path)
     data.update(entry)
     with open(json_path, "w") as f:
         json.dump(data, f, indent=2)
+
 
 def timeout_result():
     return {
@@ -69,6 +66,7 @@ def timeout_result():
         "obj": None,
         "sol": []
     }
+
 
 def run_z3_model(name, cfg, n):
     script = BASE_DIR / cfg["script"]
@@ -91,6 +89,7 @@ def run_z3_model(name, cfg, n):
 
     return full[name]
 
+
 def generate_dimacs(model_cfg, n):
     gen_script = BASE_DIR / model_cfg["generator"]
     DIMACS_DIR.mkdir(parents=True, exist_ok=True)
@@ -107,6 +106,7 @@ def generate_dimacs(model_cfg, n):
 
     return dimacs_out if dimacs_out.exists() else None
 
+
 def run_glucose(path):
     try:
         result = subprocess.run(
@@ -115,8 +115,6 @@ def run_glucose(path):
             capture_output=True,
             timeout=300
         )
-        # Glucose prints "s SATISFIABLE" or "s UNSATISFIABLE"
-        # Decide based on output
         output = result.stdout + result.stderr
         if "s SATISFIABLE" in output:
             return "sat"
@@ -127,37 +125,11 @@ def run_glucose(path):
         return "timeout"
 
 
-def generate_wcnf(model_cfg, n):
-    gen_script = BASE_DIR / model_cfg["generator"]
-    WCNF_DIR.mkdir(parents=True, exist_ok=True)
-    wcnf_out = WCNF_DIR / f"{n}.wcnf"
-
-    args = ["python3", str(gen_script), str(n)]
-    if model_cfg.get("sym"):
-        args.append("--sym")
-
-    try:
-        subprocess.run(args, text=True, timeout=300)
-    except subprocess.TimeoutExpired:
-        return None
-
-    return wcnf_out if wcnf_out.exists() else None
-
-def run_open_wbo(path):
-    try:
-        subprocess.run(
-            ["wsl", OPEN_WBO, str(path)],
-            text=True,
-            timeout=300
-        )
-        return True
-    except subprocess.TimeoutExpired:
-        return False
-
 for n in N_VALUES:
     print(f"\n======= Running n = {n} =======")
     json_path = OUTPUT_DIR / f"{n}.json"
 
+    # Z3
     if args.mode in ["z3", "all"]:
         for name, cfg in Z3_MODELS.items():
             if args.decision_only and cfg["opt"]:
@@ -167,16 +139,13 @@ for n in N_VALUES:
             print(f"\nZ3 model: {name}")
             run_z3_model(name, cfg, n)
 
-# ---------- CNF ----------
-# ---------- CNF ----------
-# ---------- CNF ----------
-    if args.mode in ["cnf", "all"]:
-        for name, cfg in CNF_MODELS.items():
-
+    # Glucose (former CNF)
+    if args.mode in ["glucose", "all"]:
+        for name, cfg in GLUCOSE_MODELS.items():
             if args.opt_only:
                 continue
 
-            print(f"\nCNF model: {name}")
+            print(f"\nGlucose model: {name}")
 
             start_all = time.time()
 
@@ -195,7 +164,6 @@ for n in N_VALUES:
                 continue
 
             status = run_glucose(cnf_path)
-
             elapsed = time.time() - start_all
 
             if status == "sat":
@@ -230,18 +198,5 @@ for n in N_VALUES:
                         "sol": []
                     }
                 })
-
-
-    if args.mode in ["maxsat", "all"]:
-        for name, cfg in WCNF_MODELS.items():
-            if args.decision_only:
-                continue
-            print(f"\nMaxSAT model: {name}")
-            wcnf_path = generate_wcnf(cfg, n)
-            if wcnf_path is None:
-                safe_update_json(json_path, {name: timeout_result()})
-                continue
-            solved = run_open_wbo(wcnf_path)
-            safe_update_json(json_path, {name: timeout_result()})
 
 print("\nDone.\n")

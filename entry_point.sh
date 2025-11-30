@@ -40,6 +40,14 @@ parse_params() {
   SELECTED_APPROACH=""
   INSTANCE=$DEFAULT_INSTANCE
 
+  if [[ $# -gt 0 && "$1" != -* ]]; then
+    SELECTED_APPROACH="$1"
+    if [[ $# -gt 1 ]]; then
+      INSTANCE="$2"
+    fi
+    return
+  fi
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -a|--approach)

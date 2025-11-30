@@ -34,5 +34,17 @@
     "optimal": true,
     "obj": null,
     "sol": []
+  },
+  "glucose": {
+    "time": 0,
+    "optimal": true,
+    "obj": null,
+    "sol": []
+  },
+  "glucose_sb": {
+    "time": 0,
+    "optimal": true,
+    "obj": null,
+    "sol": []
   }
 }

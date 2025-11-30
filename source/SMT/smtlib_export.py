@@ -13,7 +13,7 @@ def var_H(i, j, p, w):
 
 def write_smtlib_file(n, label, use_symmetry=False, max_diff=None):
     """
-    Writes a QF_LIA SMT-LIB file for SMT or MaxDiff optimization.
+    Writes a QF_LIA SMT-LIB file for SMT opt.
 
     label is used only for naming the file:
         e.g., SMT2, SMT2_SB, SMT2_OPT, SMT2_OPT_SB

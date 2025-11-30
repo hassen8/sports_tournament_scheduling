@@ -27,12 +27,13 @@ RUN wget https://yices.csl.sri.com/releases/2.6.2/yices-2.6.2-x86_64-pc-linux-gn
     chmod +x /usr/local/bin/yices* && \
     rm -rf /tmp/yices.tar.gz /opt/yices-*
 
-# OpenSMT 2.5.2
-RUN wget https://github.com/usi-verification-and-security/opensmt/releases/download/2.5.2/opensmt-2.5.2-linux-x86_64.tar.gz -O /tmp/opensmt.tar.gz && \
-    tar -xzf /tmp/opensmt.tar.gz -C /opt && \
-    mv /opt/opensmt-*/bin/opensmt /usr/local/bin/opensmt && \
+# OpenSMT 2.7.0 
+RUN wget https://github.com/usi-verification-and-security/opensmt/releases/download/v2.7.0/opensmt-2.7.0-x64-linux.tar.bz2 -O /tmp/opensmt.tar.bz2 && \
+    tar -xf /tmp/opensmt.tar.bz2 -C /opt && \
+    cp /opt/opensmt*/opensmt /usr/local/bin/opensmt && \
     chmod +x /usr/local/bin/opensmt && \
-    rm -rf /tmp/opensmt.tar.gz /opt/opensmt-*
+    rm -rf /tmp/opensmt.tar.bz2 /opt/opensmt*
+
 
 # Open-WBO
 RUN wget https://sat.inesc-id.pt/~mikolas/sw/open-wbo-2.0-linux -O /usr/local/bin/open-wbo && \

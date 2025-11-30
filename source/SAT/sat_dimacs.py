@@ -3,10 +3,9 @@ import sys
 import argparse
 from pathlib import Path
 
-# --------------------------------------------------------------------
 # DIMACS CNF builder for Round-Robin Tournament SAT model
-# Mirrors constraints used in sat_core.py (pure SAT)
-# --------------------------------------------------------------------
+# Mirrors constraints used in sat_core.py
+# 
 
 # Global CNF container
 clauses = []
@@ -53,9 +52,7 @@ def at_most_k(lits, k):
         add_clause([-a, -b, -c])
 
 
-# --------------------------------------------------------------------
-# Build CNF model
-# --------------------------------------------------------------------
+#CNF MODEL
 
 def build_dimacs(n, use_symmetry=False):
     global clauses, var_index, reverse_var, next_var
@@ -83,7 +80,7 @@ def build_dimacs(n, use_symmetry=False):
 
     def H(i,j,p,w):
         # only meaningful when generating for maxsat or fairness,
-        # but defined anyway for consistency
+        # but defined anyway for consistency and to try later
         if i < j:
             name = f"H_{i}_{j}_{p}_{w}"
         else:
@@ -148,9 +145,7 @@ def build_dimacs(n, use_symmetry=False):
     return
 
 
-# --------------------------------------------------------------------
-# MAIN
-# --------------------------------------------------------------------
+#main
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

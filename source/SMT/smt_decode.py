@@ -36,7 +36,7 @@ def decode_smt_model(model_str: str, n: int):
         line = lines[i].strip()
         if line.startswith("(define-fun"):
             parts = line.replace("(", " ").replace(")", " ").split()
-            # Expect something like: define-fun M_1_2_P0_W0 () Bool
+            
             name = None
             if len(parts) >= 3:
                 name = parts[2] if parts[1] == "define-fun" else parts[1]
@@ -45,7 +45,7 @@ def decode_smt_model(model_str: str, n: int):
                 i += 1
                 continue
 
-            # Find value (true/false) in subsequent lines (including possibly this one)
+            # Find value (true/false) in subsequent lines, including possibly this one)
             val = None
             j = i
             while j < len(lines):
@@ -57,7 +57,6 @@ def decode_smt_model(model_str: str, n: int):
                     val = False
                     break
                 if ")" in l2:
-                    # end of this define-fun block; if no true/false found, give up
                     break
                 j += 1
 
@@ -67,7 +66,7 @@ def decode_smt_model(model_str: str, n: int):
 
             # Parse names of form M_i_j_Pp_Ww or H_i_j_Pp_Ww
             if name.startswith("M_") or name.startswith("H_"):
-                # Example: M_1_2_P0_W0
+              
                 m = re.match(r"([MH])_(\d+)_(\d+)_P(\d+)_W(\d+)", name)
                 if m:
                     kind = m.group(1)
@@ -107,5 +106,5 @@ def decode_smt_model(model_str: str, n: int):
         sol[p][w] = [home, away]
 
     # There should be exactly one match per (p,w), but if some are None
-    # we still return the partial structure (the caller/solution checker will catch it).
+    # we still return the partial structure, hopefully the caller/solution checker will catch it).
     return sol
