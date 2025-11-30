@@ -11,53 +11,52 @@ MODEL_FILES = {
     "MIP_opt":       "source/MIP/sts_opt.mod",
 }
 
-# ✔ Only Gurobi and CPLEX now
 SOLVERS = ["gurobi", "cplex"]
 
 
 def solve_ampl(model_file, solver_name, n):
     ampl = AMPL()
 
-    # Silence AMPL
+
     ampl.setOption("solver_msg", 0)
     ampl.setOption("show_stats", 0)
     ampl.setOption("display_precision", 0)
 
-    # ✔ Only Gurobi/Cplex settings now
+    
     ampl.setOption("gurobi_options",
-                   "timelimit=300 outlev=0 mipgap=0")
+                    "timelimit=300 mipgap=0 outlev=0 threads=1 seed=0")
 
     ampl.setOption("cplex_options",
-                   "timelimit=300 mipgap=0 display=0")
+                   "timelimit=300 mipgap=0 display=0 threads=1 deterministic=1 randomseed=0")
 
-    # Load model
+    
     ampl.read(model_file)
     ampl.eval(f"let n := {n};")
     ampl.eval(f"option solver {solver_name};")
 
-    # Solve
+    
     start = time.time()
     ampl.solve()
     elapsed = time.time() - start
 
-    # Solver status
+    
     result = str(ampl.getValue("solve_result")).lower()
     result_num = int(ampl.getValue("solve_result_num"))
 
-    # Error or failure
+    
     if "error" in result or result_num >= 500:
         return elapsed, False, None, []
 
     if "limit" in result or result_num == 400:
         return 300, False, None, []
 
-    # Try objective (only defined in MIP_opt)
+    
     try:
         obj = ampl.getObjective("FairnessObjective").value()
     except:
         obj = None
 
-    # Extract schedule
+    
     sol = extract_schedule(ampl, n)
 
     if sol == []:
@@ -83,7 +82,7 @@ def extract_schedule(ampl, n):
         if val > 0.5:
             sched[p - 1][w - 1] = [int(i), int(j)]
 
-    # Check if ANY match exists
+  
     has_match = any(any(slot is not None for slot in row) for row in sched)
     if not has_match:
         return []
@@ -136,7 +135,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     inst = int(args.n) 
 
-    # Default instances logic
+    
     if inst == 0:
         default_instances = [6, 8, 10, 12, 14, 16]
         print(f"Argument is 0. Running all default instances: {default_instances}")
@@ -144,4 +143,5 @@ if __name__ == "__main__":
             run_all(n)
     else:
         print(f"Running specific instance: n = {inst}")
+
         run_all(inst)
