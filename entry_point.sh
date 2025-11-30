@@ -2,13 +2,9 @@
 set -Eeuo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
-
-# Configurable Parameters
-
 APPROACHES=("CP" "MIP" "SAT" "SMT")
 DEFAULT_INSTANCE=6
 
-# Utility Functions
 cleanup() {
   trap - SIGINT SIGTERM ERR EXIT
 }
@@ -29,9 +25,9 @@ usage() {
 Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS]
 
 Options:
-  -a, --approach    Approach to run (CP | MIP | SMT). Default: all available approaches
-  -n, --instance    Instance size (e.g., 6, 8, 10, 12). Default: ${DEFAULT_INSTANCE}
-  -h, --help        Show this help and exit
+  -a, --approach    Approach to run (CP | MIP | SAT | SMT)
+  -n, --instance    Instance size (6, 8, 10, 12, ...)
+  -h, --help        Show this help message
 
 Examples:
   ./entrypoint.sh --approach CP --instance 8
@@ -40,11 +36,9 @@ EOF
   exit 0
 }
 
-# Parse Command-Line Arguments
-
 parse_params() {
   SELECTED_APPROACH=""
-  INSTANCE=0
+  INSTANCE=$DEFAULT_INSTANCE
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -66,13 +60,11 @@ parse_params() {
   done
 }
 
-# main
-
 main() {
   parse_params "$@"
 
   if [[ -z "$SELECTED_APPROACH" ]]; then
-    msg "(entrypoint) No specific approach selected — running all available approaches."
+    msg "(entrypoint) Running ALL approaches..."
     for ap in "${APPROACHES[@]}"; do
       run_approach "$ap" "$INSTANCE"
     done
@@ -86,17 +78,30 @@ main() {
 run_approach() {
   local approach="$1"
   local instance="$2"
-  local file="source/${approach}/run.py"
 
-  msg "(entrypoint) Running ${approach} approach with instance=${instance}"
+  msg "(entrypoint) Running ${approach} with instance=${instance}"
 
-  if [[ -f "$file" ]]; then
-    python3 "$file" "-n" "$instance"
-  else
-    msg "(entrypoint) File not found: $file — skipping ${approach} approach."
-  fi
+  case "$approach" in
+    CP)
+      python3 source/CP/run.py -n "$instance"
+      ;;
+    
+    MIP)
+      python3 source/MIP/run.py -n "$instance"
+      ;;
+    
+    SAT)
+      python3 source/SAT/run.py --mode all -n "$instance"
+      ;;
+    
+    SMT)
+      python3 source/SMT/run.py --mode all -n "$instance"
+      ;;
+    
+    *)
+      msg "(entrypoint) Unknown approach: ${approach}"
+      ;;
+  esac
 }
-
-# Entrypoint Execution
 
 main "$@"
