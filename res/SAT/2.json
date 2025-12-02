@@ -51,16 +51,30 @@
       ]
     ]
   },
-  "cnf": {
+  "glucose": {
     "time": 0,
     "optimal": true,
     "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
-  "cnf_sb": {
+  "glucose_sb": {
     "time": 0,
     "optimal": true,
     "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   }
 }

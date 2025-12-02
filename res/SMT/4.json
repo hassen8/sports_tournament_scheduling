@@ -1,17 +1,5 @@
 {
-  "SMT2_YICES": {
-    "time": 0,
-    "optimal": true,
-    "obj": null,
-    "sol": []
-  },
   "SMT2_OPENSMT": {
-    "time": 0,
-    "optimal": true,
-    "obj": null,
-    "sol": []
-  },
-  "SMT2_SB_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,
@@ -23,19 +11,7 @@
     "obj": null,
     "sol": []
   },
-  "SMT2_OPT_YICES": {
-    "time": 0,
-    "optimal": true,
-    "obj": null,
-    "sol": []
-  },
   "SMT2_OPT_OPENSMT": {
-    "time": 0,
-    "optimal": true,
-    "obj": null,
-    "sol": []
-  },
-  "SMT2_OPT_SB_YICES": {
     "time": 0,
     "optimal": true,
     "obj": null,

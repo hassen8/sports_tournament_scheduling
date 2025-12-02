@@ -1,47 +1,51 @@
-############################################################
-#  STS PLAIN MODEL  (AMPL version of your Pyomo plain_model)
-############################################################
+/*
+MIP model for the STS problem
+constraints:
+    1. One match per (week, period)
+    2. Each pair meets exactly once
+    3. Each team plays once per week
+    4. Each team appears at most twice in any period
+*/
 
-# Number of teams
 param n >= 2, integer;
 
-# Sets
 set T := 1..n;          # Teams
 set W := 1..n-1;        # Weeks
-set P := 1..n div 2;    # Periods
+set P := 1..n div 2;    # Periods per week
 
-# Decision variable:
-# x[i,j,w,p] = 1 if team i plays team j in week w period p
-# Only define for i < j (unordered match)
-var x {i in T, j in T, w in W, p in P: i < j} binary;
+# Variables
+# x[i,j,w,p] = 1 if team i (home) plays team j (away) in week w and period p.
 
-############################################################
-# 1) One match per (week, period)
-############################################################
-subject to OneMatchPerSlot {w in W, p in P}:
-    sum {i in T, j in T: i < j} x[i, j, w, p] = 1;
+var x{i in T, j in T, w in W, p in P: i != j} binary;
 
-############################################################
-# 2) Each pair of teams meets exactly once
-############################################################
-subject to MeetOnce {i in T, j in T: i < j}:
-    sum {w in W, p in P} x[i, j, w, p] = 1;
 
-############################################################
-# 3) Each team plays once per week
-############################################################
-subject to WeeklyGame {t in T, w in W}:
-      sum {j in T, p in P: j > t} x[t, j, w, p]
-    + sum {i in T, p in P: i < t} x[i, t, w, p]
+# One match per (week, period)
+
+subject to OneMatchPerSlot{w in W, p in P}:
+    sum{i in T, j in T: i != j} x[i,j,w,p] = 1;
+
+
+# Each pair of teams meets exactly once
+
+subject to MeetOnce{i in T, j in T: i < j}:
+    sum{w in W, p in P} ( x[i,j,w,p] + x[j,i,w,p] ) = 1;
+
+
+# Each team plays exactly once per week
+
+subject to WeeklyGame{t in T, w in W}:
+    sum{j in T, p in P: j != t} x[t,j,w,p]
+  + sum{i in T, p in P: i != t} x[i,t,w,p]
     = 1;
 
-############################################################
-# 4) Each team appears at most twice in any period
-############################################################
-subject to PeriodLimit {t in T, p in P}:
-      sum {j in T, w in W: j > t} x[t, j, w, p]
-    + sum {i in T, w in W: i < t} x[i, t, w, p]
+
+# Each team appears at most twice in any period
+
+subject to PeriodLimit{t in T, p in P}:
+    sum{j in T, w in W: j != t} x[t,j,w,p]
+  + sum{i in T, w in W: i != t} x[i,t,w,p]
     <= 2;
 
-# Dummy objective (feasibility model)
-minimize DummyObj: 0;
+# Feasibility objective
+
+minimize obj: 0;

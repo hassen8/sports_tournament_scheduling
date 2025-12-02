@@ -1,6 +1,6 @@
 {
   "z3_sat": {
-    "time": 29,
+    "time": 19,
     "optimal": true,
     "obj": null,
     "sol": [
@@ -283,7 +283,7 @@
     ]
   },
   "z3_sat_sb": {
-    "time": 13,
+    "time": 11,
     "optimal": true,
     "obj": null,
     "sol": [
@@ -565,13 +565,13 @@
       ]
     ]
   },
-  "cnf": {
+  "z3_opt": {
     "time": 300,
     "optimal": false,
     "obj": null,
     "sol": []
   },
-  "cnf_sb": {
+  "z3_opt_sb": {
     "time": 300,
     "optimal": false,
     "obj": null,

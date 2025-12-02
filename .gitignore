@@ -11,6 +11,8 @@ res/SMT/smt2/*.smt2
 res/SAT/dimacs/*.cnf
 res/SAT/wcnf/*.wcnf
 
+source/SAT/Dockerfile
+Dockerfile
 source/SAT/dimacs/
 source/SAT/wcnf/
 source/SMT/smt2/

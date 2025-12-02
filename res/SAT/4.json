@@ -23,13 +23,13 @@
     "obj": null,
     "sol": []
   },
-  "cnf": {
+  "glucose": {
     "time": 0,
     "optimal": true,
     "obj": null,
     "sol": []
   },
-  "cnf_sb": {
+  "glucose_sb": {
     "time": 0,
     "optimal": true,
     "obj": null,

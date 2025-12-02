@@ -1,0 +1,14 @@
+{
+  "z3_sat": {
+    "time": 300,
+    "optimal": false,
+    "obj": null,
+    "sol": []
+  },
+  "z3_sat_sb": {
+    "time": 300,
+    "optimal": false,
+    "obj": null,
+    "sol": []
+  }
+}

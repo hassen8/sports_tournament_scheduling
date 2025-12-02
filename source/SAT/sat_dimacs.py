@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 import sys
-import argparse
-from pathlib import Path
+from itertools import combinations
 
-# --------------------------------------------------------------------
-# DIMACS CNF builder for Round-Robin Tournament SAT model
-# Mirrors constraints used in sat_core.py (pure SAT)
-# --------------------------------------------------------------------
-
-# Global CNF container
+# Global CNF state
 clauses = []
 var_index = {}
 reverse_var = []
 next_var = 1
 
-def new_var(name):
+
+def new_var(name: str) -> int:
     global next_var
     if name in var_index:
         return var_index[name]
@@ -23,41 +18,40 @@ def new_var(name):
     next_var += 1
     return var_index[name]
 
+
 def add_clause(lits):
     clauses.append(lits)
 
+
 def exactly_one(lits):
+    if not lits:
+        return
     # at least one
     add_clause(lits[:])
     # pairwise at most one
     for i in range(len(lits)):
-        for j in range(i+1, len(lits)):
+        for j in range(i + 1, len(lits)):
             add_clause([-lits[i], -lits[j]])
 
 
 def at_most_k(lits, k):
-    # simple pairwise (sufficient for k=2 which is our case)
     if k >= len(lits):
         return
     if k == 1:
-        # reduce to at-most-one
         for i in range(len(lits)):
-            for j in range(i+1, len(lits)):
+            for j in range(i + 1, len(lits)):
                 add_clause([-lits[i], -lits[j]])
         return
-    # For k=2 simple O(n^2) encoding
-    # For our tournament constraint (≤2), this is fine
-    # Any triple must not all be true
-    from itertools import combinations
-    for (a,b,c) in combinations(lits, 3):
-        add_clause([-a, -b, -c])
+    if k == 2:
+        for (a, b, c) in combinations(lits, 3):
+            add_clause([-a, -b, -c])
 
 
-# --------------------------------------------------------------------
-# Build CNF model
-# --------------------------------------------------------------------
-
-def build_dimacs(n, use_symmetry=False):
+def build_dimacs(n: int, use_sym: bool = False):
+    """
+    Build DIMACS CNF encoding for STS with n teams.
+    Populates globals: clauses, reverse_var, next_var.
+    """
     global clauses, var_index, reverse_var, next_var
     clauses = []
     var_index = {}
@@ -68,104 +62,93 @@ def build_dimacs(n, use_symmetry=False):
         sys.exit("n must be even")
 
     periods = n // 2
-    weeks   = n - 1
+    weeks = n - 1
 
-    teams = range(1, n+1)
+    teams = range(1, n + 1)
     Periods = range(periods)
-    Weeks   = range(weeks)
+    Weeks = range(weeks)
 
-    def M(i,j,p,w):
+    def M(i, j, p, w):
         if i < j:
             name = f"M_{i}_{j}_{p}_{w}"
         else:
             name = f"M_{j}_{i}_{p}_{w}"
         return new_var(name)
 
-    def H(i,j,p,w):
-        # only meaningful when generating for maxsat or fairness,
-        # but defined anyway for consistency
-        if i < j:
-            name = f"H_{i}_{j}_{p}_{w}"
-        else:
-            name = f"H_{j}_{i}_{p}_{w}"
-        return new_var(name)
-
-    # 1) pair exactly once
+    # 1) Each pair plays exactly once over all (p,w).
     for i in teams:
         for j in teams:
             if i < j:
-                lits = [M(i,j,p,w) for p in Periods for w in Weeks]
+                lits = [M(i, j, p, w) for p in Periods for w in Weeks]
                 exactly_one(lits)
 
-    # 2) weekly exactly once
+    # 2) Each team plays exactly once per week.
     for t in teams:
         for w in Weeks:
             lits = []
             for p in Periods:
                 for opp in teams:
-                    if opp == t: continue
-                    i,j = (t,opp) if t < opp else (opp,t)
-                    lits.append(M(i,j,p,w))
+                    if opp == t:
+                        continue
+                    i, j = (t, opp) if t < opp else (opp, t)
+                    lits.append(M(i, j, p, w))
             exactly_one(lits)
 
-    # 3) each slot exactly one match
+    # 3) Each (period, week) has exactly one match.
     for p in Periods:
         for w in Weeks:
             lits = []
             for i in teams:
                 for j in teams:
                     if i < j:
-                        lits.append(M(i,j,p,w))
+                        lits.append(M(i, j, p, w))
             exactly_one(lits)
 
-    # 4) ≤2 matches per period per team
+    # 4) Each team appears at most twice in the same period.
     for t in teams:
         for p in Periods:
             lits = []
             for opp in teams:
-                if opp == t: continue
-                i,j = (t,opp) if t < opp else (opp,t)
+                if opp == t:
+                    continue
+                i, j = (t, opp) if t < opp else (opp, t)
                 for w in Weeks:
-                    lits.append(M(i,j,p,w))
+                    lits.append(M(i, j, p, w))
             at_most_k(lits, 2)
 
-    # Symmetry breaking
-    if use_symmetry:
-        # SB1
+    # Symmetry breaking (same idea as sat_core)
+    if use_sym:
+        # SB1: Fix week 0 as (1,2), (3,4), ...
         for p in Periods:
-            i = 2*p + 1
-            j = 2*p + 2
+            i = 2 * p + 1
+            j = 2 * p + 2
             if j <= n:
-                add_clause([ M(i,j,p,0) ])
-        # SB2
+                add_clause([M(i, j, p, 0)])
+
+        # SB2: Team 1 plays opponent (w+2) in week w.
         for w in Weeks:
             opp = w + 2
             if opp <= n:
-                add_clause([ M(1,opp,p,w) for p in Periods ])
-        # SB3 (home team full symmetry)
-        # omitted for pure CNF decision
-
-    return
+                add_clause([M(1, opp, p, w) for p in Periods])
 
 
-# --------------------------------------------------------------------
-# MAIN
-# --------------------------------------------------------------------
+def get_reverse_map():
+    return reverse_var[:]
 
 if __name__ == "__main__":
+    import argparse
+    from pathlib import Path
+
     parser = argparse.ArgumentParser()
     parser.add_argument("n", type=int)
     parser.add_argument("--sym", action="store_true")
     args = parser.parse_args()
 
-    n = args.n
-    use_sym = args.sym
-
-    build_dimacs(n, use_sym)
+    build_dimacs(args.n, args.sym)
 
     out_dir = Path("res/SAT/dimacs")
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"{n}.cnf"
+    out_file = out_dir / f"{args.n}.cnf"
 
     with open(out_file, "w") as f:
         f.write(f"p cnf {next_var-1} {len(clauses)}\n")

@@ -1,50 +1,54 @@
 {
-  "SMT2_YICES": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
-  },
   "SMT2_OPENSMT": {
-    "time": 300,
-    "optimal": false,
+    "time": 0,
+    "optimal": true,
     "obj": null,
-    "sol": []
-  },
-  "SMT2_SB_YICES": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "SMT2_SB_OPENSMT": {
-    "time": 300,
-    "optimal": false,
+    "time": 0,
+    "optimal": true,
     "obj": null,
-    "sol": []
-  },
-  "SMT2_OPT_YICES": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "SMT2_OPT_OPENSMT": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
-  },
-  "SMT2_OPT_SB_YICES": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
+    "time": 0,
+    "optimal": true,
+    "obj": 1,
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   },
   "SMT2_OPT_SB_OPENSMT": {
-    "time": 300,
-    "optimal": false,
-    "obj": null,
-    "sol": []
+    "time": 0,
+    "optimal": true,
+    "obj": 1,
+    "sol": [
+      [
+        [
+          1,
+          2
+        ]
+      ]
+    ]
   }
 }

@@ -1,3 +1,4 @@
+import argparse
 import time
 from pathlib import Path
 from amplpy import AMPL
@@ -10,42 +11,43 @@ MODEL_FILES = {
     "MIP_opt":       "source/MIP/sts_opt.mod",
 }
 
-SOLVERS = ["highs", "gurobi", "cplex"]
+SOLVERS = ["gurobi", "cplex"]
 
 
 def solve_ampl(model_file, solver_name, n):
     ampl = AMPL()
 
-   
+
     ampl.setOption("solver_msg", 0)
     ampl.setOption("show_stats", 0)
     ampl.setOption("display_precision", 0)
-    ampl.setOption("presolve", 1)
 
- 
-    ampl.setOption("highs_options",  "time_limit=300 output_flag=0 log_to_console=0")
-    ampl.setOption("gurobi_options", "timelimit=300 outlev=0")
-    ampl.setOption("cplex_options",  "timelimit=300 display=0")
+    
+    ampl.setOption("gurobi_options",
+                    "timelimit=300 mipgap=0 outlev=0")
+
+    ampl.setOption("cplex_options",
+                   "timelimit=300 mipgap=0 display=0")
 
     
     ampl.read(model_file)
     ampl.eval(f"let n := {n};")
     ampl.eval(f"option solver {solver_name};")
 
-  
+    
     start = time.time()
     ampl.solve()
     elapsed = time.time() - start
 
     
-    status = ampl.getValue("solve_result")
-    status_num = int(ampl.getValue("solve_result_num"))
+    result = str(ampl.getValue("solve_result")).lower()
+    result_num = int(ampl.getValue("solve_result_num"))
 
-   
-    if status_num == 200 or "infeasible" in status.lower():
-        return elapsed, True, None, []
+    
+    if "error" in result or result_num >= 500:
+        return elapsed, False, None, []
 
-    if status_num == 400 or "limit" in status.lower():
+    if "limit" in result or result_num == 400:
         return 300, False, None, []
 
     
@@ -54,24 +56,39 @@ def solve_ampl(model_file, solver_name, n):
     except:
         obj = None
 
-    sol = extract_solution(ampl, n)
+    
+    sol = extract_schedule(ampl, n)
+
+    if sol == []:
+        return elapsed, False, obj, []
+
     return elapsed, True, obj, sol
 
 
 
-def extract_solution(ampl, n):
+def extract_schedule(ampl, n):
+    """
+    Extracts matches in format:
+    sched[p][w] = [i, j]
+    """
     try:
         vals = ampl.getVariable("x").getValues()
     except:
         return []
 
-    sched = [[None] * (n - 1) for _ in range(n // 2)]
-    for row in vals:
-        i, j, w, p, val = int(row[0]), int(row[1]), int(row[2]), int(row[3]), float(row[4])
+    sched = [[None for _ in range(n - 1)] for _ in range(n // 2)]
+
+    for (i, j, w, p), val in vals.to_dict().items():
         if val > 0.5:
-            sched[p - 1][w - 1] = [i, j]
+            sched[p - 1][w - 1] = [int(i), int(j)]
+
+  
+    has_match = any(any(slot is not None for slot in row) for row in sched)
+    if not has_match:
+        return []
 
     return sched
+
 
 
 def run_all(n):
@@ -87,36 +104,22 @@ def run_all(n):
 
             elapsed, optimal, obj, sol = solve_ampl(file_name, solver_name, n)
 
-        
-            if optimal and sol == [] and obj is None and elapsed != 300:
-                print("     ✗ UNSAT proved")
+            if not optimal:
+                print("     ✗ No valid solution")
                 results[tag] = {
-                    "time": int(elapsed),
-                    "optimal": True,
-                    "obj": None,
-                    "sol": []
-                }
-                continue
-
-           
-            if not optimal and sol == [] and obj is None:
-                print("     ✗ Timeout (no answer)")
-                results[tag] = {
-                    "time": 300,
+                    "time": int(min(elapsed, 300)),
                     "optimal": False,
                     "obj": None,
                     "sol": []
                 }
-                continue
-
-            
-            print("     ✓ Solution found")
-            results[tag] = {
-                "time": int(min(elapsed, 300)),
-                "optimal": True,
-                "obj": obj,
-                "sol": sol
-            }
+            else:
+                print("     ✓ Solution found")
+                results[tag] = {
+                    "time": int(min(elapsed, 300)),
+                    "optimal": True,
+                    "obj": obj,
+                    "sol": sol
+                }
 
     out = Path("res/MIP")
     out.mkdir(parents=True, exist_ok=True)
@@ -125,7 +128,20 @@ def run_all(n):
     write_result_json(str(outfile), full_data=results)
     print(f"\nSaved: {outfile}\n")
 
-
 if __name__ == "__main__":
-    for n in [2,4,6, 8, 10, 12, 14]:
-        run_all(n)
+    parser = argparse.ArgumentParser(description="Run MIP optimization models.")
+    parser.add_argument("-n", type=int, help="Instance size to run. Pass 0 to run all default instances.")
+    
+    args = parser.parse_args()
+    inst = int(args.n) 
+
+    
+    if inst == 0:
+        default_instances = [6, 8, 10, 12, 14, 16]
+        print(f"Argument is 0. Running all default instances: {default_instances}")
+        for n in default_instances:
+            run_all(n)
+    else:
+        print(f"Running specific instance: n = {inst}")
+
+        run_all(inst)
