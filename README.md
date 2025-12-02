@@ -13,13 +13,15 @@ project/
 │
 ├── source/ # Source code for each approach
 │ ├── CP/
-│ ├── MIP/
-│ └── SMT/
+│ ├── SAT/
+│ ├── SMT/
+│ └── MIP/
 │
 ├── res/ # Output directory (results stored here)
 │ ├── CP/
-│ ├── MIP/
-│ └── SMT/
+│ ├── SAT/
+│ ├── SMT/
+│ └── MIP/
 │
 ├── entrypoint.sh # Main entrypoint controlling which approach to run
 └── Dockerfile # Docker build configuration
