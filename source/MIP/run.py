@@ -145,3 +145,4 @@ if __name__ == "__main__":
         print(f"Running specific instance: n = {inst}")
 
         run_all(inst)
+
