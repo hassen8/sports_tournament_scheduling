@@ -1668,5 +1668,11 @@
         ]
       ]
     ]
+  },
+  "cp_opt_reg": {
+    "time": 300,
+    "optimal": false,
+    "obj": null,
+    "sol": []
   }
 }
