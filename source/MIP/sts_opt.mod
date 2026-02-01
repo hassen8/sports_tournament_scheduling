@@ -1,109 +1,74 @@
-/*
-MIP model for the STS problem with:
-  - constraints,
-  - symmetry breaking,
-  - implied constraints.
-  - fairness objective: minimize the maximum home/away imbalance.
-*/
-
-param n >= 2, integer;
-
-set T := 1..n;
-set W := 1..n-1;
-set P := 1..n div 2;
-
-# Variables
-# x[i,j,w,p] = 1 if team i (home) plays team j (away) in week w and period p.
-
-var x{i in T, j in T, w in W, p in P: i != j} binary;
+# =====================================================
+# MIP model for the Sports Tournament Scheduling (STS)
+# with round-robin preprocessing
+#
+# Constraints enforced:
+# 1. One match per (week, period)
+# 2. Each pair meets exactly once        (by preprocessing)
+# 3. Each team plays exactly once per week
+# 4. Each team appears at most twice in any period
+#
+# Objective:
+# Minimize the maximum home/away imbalance
+# =====================================================
 
 
-# One match per (week, period)
+param n integer;          
 
-subject to OneMatchPerSlot{w in W, p in P}:
-    sum{i in T, j in T: i != j} x[i,j,w,p] = 1;
-
-
-# Each pair of teams meets exactly once
-
-subject to MeetOnce{i in T, j in T: i < j}:
-    sum{w in W, p in P} ( x[i,j,w,p] + x[j,i,w,p] ) = 1;
+set TEAMS := 1..n;
+set WEEKS := 1..(n-1);
+set PERIODS := 1..(n/2);
 
 
-# Each team plays exactly once per week
+set MATCHES within TEAMS cross TEAMS cross WEEKS;
 
-subject to WeeklyGame{t in T, w in W}:
-    sum{j in T, p in P: j != t} x[t,j,w,p]
-  + sum{i in T, p in P: i != t} x[i,t,w,p]
+
+var x{(i,j,w) in MATCHES, p in PERIODS} binary;
+
+var y{(i,j,w) in MATCHES, p in PERIODS} binary;
+
+var h{TEAMS} >= 0 integer;
+var a{TEAMS} >= 0 integer;
+
+var d{TEAMS} >= 0 integer;
+
+var F >= 0 integer;
+
+s.t. OneMatchPerWeekPeriod {w in WEEKS, p in PERIODS}:
+    sum {(i,j,w) in MATCHES} x[i,j,w,p] = 1;
+
+s.t. OneMatchPerTeamWeek {t in TEAMS, w in WEEKS}:
+    sum {(i,j,w) in MATCHES: i = t or j = t} sum {p in PERIODS} x[i,j,w,p]
     = 1;
 
-
-# Each team appears at most twice in any period
-
-subject to PeriodLimit{t in T, p in P}:
-    sum{j in T, w in W: j != t} x[t,j,w,p]
-  + sum{i in T, w in W: i != t} x[i,t,w,p]
+s.t. PeriodLimit {t in TEAMS, p in PERIODS}:
+    sum {(i,j,w) in MATCHES: i = t or j = t} x[i,j,w,p]
     <= 2;
 
-# Symmetry breaking (fix week 1)
-
-subject to Week1Fix{p in P}:
-    x[2*p - 1, 2*p, 1, p] = 1;
+s.t. OrientationLink {(i,j,w) in MATCHES, p in PERIODS}:
+    y[i,j,w,p] <= x[i,j,w,p];
 
 
+s.t. FixFirstMatchToFirstPeriod:
+    sum {(i,j,1) in MATCHES : i = 1 or j = 1} x[i,j,1,1] = 1;
 
-# Implied constraint: Each team plays exactly n-1 matches in the whole season
-
-subject to TotalMatches {t in T}:
-      sum {j in T, w in W, p in P: j != t} x[t, j, w, p]
-    + sum {i in T, w in W, p in P: i != t} x[i, t, w, p]
-    = n - 1;
-
-
-# Implied constraint: Each period has exactly n-1 matches over all weeks
-
-subject to PeriodTotal {p in P}:
-    sum {i in T, j in T, w in W: i != j} x[i, j, w, p] = n - 1;
-
-
-
-# Fairness variables
-
-var h {T} >= 0, <= n-1, integer;       # home games
-var a {T} >= 0, <= n-1, integer;       # away games
-var d {T} >= 0, <= n-1, integer;       # imbalance
-var F        >= 0, <= n-1, integer;    # maximum imbalance
-
-
-# Home/away counts
-
-subject to HomeCount {t in T}:
+s.t. HomeCount {t in TEAMS}:
     h[t] =
-        sum {j in T, w in W, p in P: j != t} x[t, j, w, p];
+        sum {(i,j,w) in MATCHES, p in PERIODS: i = t} y[i,j,w,p]
+      + sum {(i,j,w) in MATCHES, p in PERIODS: j = t} (x[i,j,w,p] - y[i,j,w,p]);
 
-subject to AwayCount {t in T}:
+s.t. AwayCount {t in TEAMS}:
     a[t] =
-        sum {j in T, w in W, p in P: j != t} x[j, t, w, p];
+        sum {(i,j,w) in MATCHES, p in PERIODS: i = t} (x[i,j,w,p] - y[i,j,w,p])
+      + sum {(i,j,w) in MATCHES, p in PERIODS: j = t} y[i,j,w,p];
 
-
-# d[t] >= | h[t] - a[t] |
-
-subject to Diff1 {t in T}:
+s.t. DiffPos {t in TEAMS}:
     d[t] >= h[t] - a[t];
 
-subject to Diff2 {t in T}:
+s.t. DiffNeg {t in TEAMS}:
     d[t] >= a[t] - h[t];
 
-
-
-# F >= d[t] for each team
-
-subject to MaxDiff {t in T}:
+s.t. MaxDiff {t in TEAMS}:
     F >= d[t];
 
-
-
-# Objective: minimize maximum imbalance
-
-minimize FairnessObjective:
-    F;
+minimize FairnessObjective: F;

@@ -1,51 +1,37 @@
-/*
-MIP model for the STS problem
-constraints:
-    1. One match per (week, period)
-    2. Each pair meets exactly once
-    3. Each team plays once per week
-    4. Each team appears at most twice in any period
-*/
-
-param n >= 2, integer;
-
-set T := 1..n;          # Teams
-set W := 1..n-1;        # Weeks
-set P := 1..n div 2;    # Periods per week
-
-# Variables
-# x[i,j,w,p] = 1 if team i (home) plays team j (away) in week w and period p.
-
-var x{i in T, j in T, w in W, p in P: i != j} binary;
+# =====================================================
+# MIP model for the Sports Tournament Scheduling (STS)
+# with round-robin preprocessing
+#
+# Constraints enforced:
+# 1. One match per (week, period)
+# 2. Each pair meets exactly once        (by preprocessing)
+# 3. Each team plays once per week       (by constraint below)
+# 4. Each team appears at most twice in any period
+# =====================================================
 
 
-# One match per (week, period)
+param n integer;          # number of teams (even)
 
-subject to OneMatchPerSlot{w in W, p in P}:
-    sum{i in T, j in T: i != j} x[i,j,w,p] = 1;
+set TEAMS := 1..n;
+set WEEKS := 1..(n-1);
+set PERIODS := 1..(n/2);
 
-
-# Each pair of teams meets exactly once
-
-subject to MeetOnce{i in T, j in T: i < j}:
-    sum{w in W, p in P} ( x[i,j,w,p] + x[j,i,w,p] ) = 1;
+set MATCHES within TEAMS cross TEAMS cross WEEKS;
 
 
-# Each team plays exactly once per week
+var x{(i,j,w) in MATCHES, p in PERIODS} binary;
 
-subject to WeeklyGame{t in T, w in W}:
-    sum{j in T, p in P: j != t} x[t,j,w,p]
-  + sum{i in T, p in P: i != t} x[i,t,w,p]
-    = 1;
+s.t. OneMatchPerWeekPeriod {w in WEEKS, p in PERIODS}:
+    sum {(i,j,w) in MATCHES} x[i,j,w,p] = 1;
 
+s.t. OneMatchPerTeamWeek {t in TEAMS, w in WEEKS}:
+    sum {(i,j,w) in MATCHES: i = t} sum {p in PERIODS} x[i,j,w,p]
+  + sum {(i,j,w) in MATCHES: j = t} sum {p in PERIODS} x[i,j,w,p]
+  <= 1;
 
-# Each team appears at most twice in any period
-
-subject to PeriodLimit{t in T, p in P}:
-    sum{j in T, w in W: j != t} x[t,j,w,p]
-  + sum{i in T, w in W: i != t} x[i,t,w,p]
-    <= 2;
-
-# Feasibility objective
+s.t. PeriodLimit {t in TEAMS, p in PERIODS}:
+    sum {(i,j,w) in MATCHES: i = t} x[i,j,w,p]
+  + sum {(i,j,w) in MATCHES: j = t} x[i,j,w,p]
+  <= 2;
 
 minimize obj: 0;

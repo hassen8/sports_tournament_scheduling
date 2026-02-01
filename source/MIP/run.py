@@ -4,17 +4,40 @@ from pathlib import Path
 from amplpy import AMPL
 from utils_json import write_result_json
 
+
 MODEL_FILES = {
-    "MIP_plain":     "source/MIP/sts_plain.mod",
-    "MIP_symmetry":  "source/MIP/sts_symmetry.mod",
-    "MIP_implied":   "source/MIP/sts_implied.mod",
-    "MIP_opt":       "source/MIP/sts_opt.mod",
+    "MIP_plain":    "source/MIP/sts_plain.mod",
+    "MIP_symmetry": "source/MIP/sts_symmetry.mod",
+    "MIP_implied":  "source/MIP/sts_implied.mod",
+    "MIP_opt":      "source/MIP/sts_opt.mod",
 }
 
 SOLVERS = ["gurobi", "cplex"]
 
 
-def solve_ampl(model_file, solver_name, n):
+def generate_round_robin(n, unordered=False):
+    teams = list(range(1, n + 1))
+    fixed = teams[-1]
+    rotating = teams[:-1]
+
+    matches = []
+
+    for w in range(1, n):
+        left = [fixed] + rotating[: (n // 2) - 1]
+        right = rotating[(n // 2) - 1:][::-1]
+
+        for i, j in zip(left, right):
+            if unordered:
+                matches.append((min(i, j), max(i, j), w))
+            else:
+                matches.append((i, j, w))
+
+        rotating = [rotating[-1]] + rotating[:-1]
+
+    return matches
+
+
+def solve_ampl(model_name, model_file, solver_name, n):
     ampl = AMPL()
 
 
@@ -26,18 +49,32 @@ def solve_ampl(model_file, solver_name, n):
     ampl.setOption("gurobi_options",
                     "timelimit=300 mipgap=0 outlev=0")
 
-    ampl.setOption("cplex_options",
-                   "timelimit=300 mipgap=0 display=0")
+    t_pre_start = time.perf_counter()
 
     
     ampl.read(model_file)
     ampl.eval(f"let n := {n};")
+
+    is_opt = model_name.startswith("MIP_opt")
+    matches = generate_round_robin(n, unordered=is_opt)
+
+    dat_path = "/tmp/matches.dat"
+    with open(dat_path, "w") as f:
+        f.write("set MATCHES :=\n")
+        for i, j, w in matches:
+            f.write(f"  ({i},{j},{w})\n")
+        f.write(";\n")
+
+    ampl.readData(dat_path)
     ampl.eval(f"option solver {solver_name};")
 
     
     start = time.time()
     ampl.solve()
-    elapsed = time.time() - start
+    t_solve_end = time.perf_counter()
+
+    solver_time = t_solve_end - t_solve_start
+    total_time = preprocessing_time + solver_time
 
     
     result = str(ampl.getValue("solve_result")).lower()
@@ -45,7 +82,7 @@ def solve_ampl(model_file, solver_name, n):
 
     
     if "error" in result or result_num >= 500:
-        return elapsed, False, None, []
+        return total_time, False, None, []
 
     if "limit" in result or result_num == 400:
         return 300, False, None, []
@@ -58,19 +95,13 @@ def solve_ampl(model_file, solver_name, n):
 
     
     sol = extract_schedule(ampl, n)
-
     if sol == []:
-        return elapsed, False, obj, []
+        return total_time, False, None, []
 
-    return elapsed, True, obj, sol
-
+    return total_time, True, obj, sol
 
 
 def extract_schedule(ampl, n):
-    """
-    Extracts matches in format:
-    sched[p][w] = [i, j]
-    """
     try:
         vals = ampl.getVariable("x").getValues()
     except:
@@ -80,7 +111,7 @@ def extract_schedule(ampl, n):
 
     for (i, j, w, p), val in vals.to_dict().items():
         if val > 0.5:
-            sched[p - 1][w - 1] = [int(i), int(j)]
+            sched[int(p) - 1][int(w) - 1] = [int(i), int(j)]
 
   
     has_match = any(any(slot is not None for slot in row) for row in sched)
@@ -88,7 +119,6 @@ def extract_schedule(ampl, n):
         return []
 
     return sched
-
 
 
 def run_all(n):
@@ -102,7 +132,12 @@ def run_all(n):
             tag = f"{model_name}_{solver_name}"
             print(f"  → {tag}")
 
-            elapsed, optimal, obj, sol = solve_ampl(file_name, solver_name, n)
+            elapsed, optimal, obj, sol = solve_ampl(
+                model_name, file_name, solver_name, n
+            )
+
+            if not model_name.startswith("MIP_opt"):
+                obj = None
 
             if not optimal:
                 print("     ✗ No valid solution")
