@@ -76,7 +76,7 @@ def solve(n, use_sym=False, anchor_week=0, time_limit_s=300):
 
 if __name__ == "__main__":
     n = int(sys.argv[1])
-    # opt_sb version passes anchor_week; opt version ignores it
+    # opt_sb version passes anchor_weekopt version ignores it
     use_sym = ("_sb" in Path(__file__).name)
     aw = int(sys.argv[2]) if (use_sym and len(sys.argv) > 2) else 0
 

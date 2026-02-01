@@ -34,5 +34,4 @@ def circle_method_pairs(n: int):
 
     return weeks
 
-# if other files import different names, keep it safe
 circle_method_pairings = circle_method_pairs

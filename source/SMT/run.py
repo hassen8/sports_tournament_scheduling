@@ -86,7 +86,21 @@ def run_external(backend: str, smt2_path: Path, timeout_s: int):
     return proc.stdout, proc.stderr
 
 
-def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str = "z3"):
+def run_one(
+    n: int,
+    sym: bool,
+    pin_team1_weeks: int,
+    *,
+    max_diff=None,
+    backend: str = "z3",
+    z3_opt: bool = False,
+):
+    """
+    Semantics (as you requested):
+      - backend=="z3" and z3_opt==True: use Z3 Optimize() and minimize D (no max_diff feasibility).
+      - backend=="z3" and z3_opt==False: plain decision model (no fairness vars).
+      - backend in {"cvc5","opensmt"}: decision if max_diff is None, else feasibility with fixed max_diff.
+    """
     t_start = time.time()
 
     if backend == "z3":
@@ -94,9 +108,11 @@ def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str
             n=n,
             use_sym=sym,
             anchor_week=0,
-            with_home=True if (max_diff is not None) else False,
-            max_diff=None,                 # not used in optimize mode
-            optimize=(max_diff is not None),
+            # Only create home/fairness constraints when doing Z3 optimization
+            with_home=True if z3_opt else False,
+            # For Z3 optimization, max_diff is not used (we minimize internal D)
+            max_diff=None,
+            optimize=True if z3_opt else False,
             timeout_ms=TIME_LIMIT * 1000,
             pin_team1_weeks=pin_team1_weeks,
         )
@@ -108,7 +124,7 @@ def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str
             sol = extract_schedule_z3(model, weeks, X, home, n)
             elapsed = min(time.time() - t_start, TIME_LIMIT)
 
-            if max_diff is not None:
+            if z3_opt:
                 # optimization case: return D*
                 Dstar = model.evaluate(D_var, model_completion=True).as_long()
                 return (elapsed, "sat", sol, Dstar) if sol else (TIME_LIMIT, "timeout", [], None)
@@ -122,7 +138,7 @@ def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str
         elapsed = min(time.time() - t_start, TIME_LIMIT)
         return elapsed, "timeout", [], None
 
-
+    # External solvers path (SMT-LIB)
     tmp_dir = ROOT / "res" / "SMT" / "smt2"
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -151,6 +167,8 @@ def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str
         stdout, stderr = run_external(backend, out_path, TIME_LIMIT)
     except subprocess.TimeoutExpired:
         return TIME_LIMIT, "timeout", []
+    except FileNotFoundError:
+        return TIME_LIMIT, "timeout", []
 
     st = parse_status(stdout)
 
@@ -167,6 +185,7 @@ def run_one(n: int, sym: bool, pin_team1_weeks: int, max_diff=None, backend: str
         return elapsed, "unsat", []
 
     return TIME_LIMIT, "timeout", []
+
 
 def build_approaches(selected_backends, selected_modes, selected_sb, selected_pins, maxD):
     approaches = []
@@ -226,8 +245,8 @@ def main():
     parser.add_argument("--pin-team1", type=int, default=0, help="pin team 1 match to period 0 for first k weeks")
     parser.add_argument("--backend", type=str, default="z3", choices=["z3", "cvc5", "opensmt"], help="solver backend")
 
-    parser.add_argument("--opt", action="store_true", help="run fairness optimization by sweeping max_diff")
-    parser.add_argument("--maxD", type=int, default=6, help="maximum max_diff to try when --opt is enabled")
+    parser.add_argument("--opt", action="store_true", help="run fairness optimization (z3 uses Optimize; externals sweep max_diff)")
+    parser.add_argument("--maxD", type=int, default=1, help="maximum max_diff to try when --opt is enabled (externals only)")
 
     parser.add_argument("--all", action="store_true", help="run all combinations")
     parser.add_argument("--backends", type=str, default="", help="comma-separated backends: z3,cvc5,opensmt")
@@ -237,6 +256,9 @@ def main():
     parser.add_argument("--models", type=str, default="", help="comma-separated exact keys to run")
 
     args = parser.parse_args()
+
+    if args.n == 0 and not args.all and not args.models.strip():
+        args.all = True
 
     N_VALUES = ALL_N if args.n == 0 else [args.n]
 
@@ -295,67 +317,67 @@ def main():
                 backend = cfg["backend"]
                 sym = cfg["sym"]
                 pin = cfg["pin"]
+
                 if not cfg["opt"]:
-                    t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend=backend)
+                    if backend == "z3":
+                        t, st, sol, _ = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend=backend, z3_opt=False)
+                    else:
+                        t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend=backend)
                     write_result_json(cfg["forced_key"], str(json_path), t, st, sol, obj=None)
                     print(f"[{cfg['forced_key']}] status={st} time={t:.3f}s")
                 else:
-                    if cfg.get("forced_D", None) is not None:
-                        D = int(cfg["forced_D"])
-                        t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=D, backend=backend)
+                    # OPT
+                    if backend == "z3":
+                        # Ignore forced_D: z3 uses Optimize() to find D*
+                        t, st, sol, Dstar = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend="z3", z3_opt=True)
                         if st == "sat":
-                            write_result_json(cfg["forced_key"], str(json_path), t, "sat", sol, obj=D)
+                            write_result_json(cfg["forced_key"], str(json_path), t, "sat", sol, obj=Dstar)
+                            print(f"[{cfg['forced_key']}] status=sat time={t:.3f}s obj={Dstar}")
                         else:
-                            write_result_json(cfg["forced_key"], str(json_path), TIME_LIMIT, "timeout", [], obj=None)
-                        print(f"[{cfg['forced_key']}] status={st} time={t:.3f}s")
-                    else:
-                        best = None
-                        for D in range(0, int(args.maxD) + 1):
-                            t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=D, backend=backend)
-                            if st == "sat":
-                                best = (D, t, sol)
-                                break
-                        if best is None:
                             write_result_json(cfg["forced_key"], str(json_path), TIME_LIMIT, "timeout", [], obj=None)
                             print(f"[{cfg['forced_key']}] status=timeout")
-                        else:
-                            D, t, sol = best
-                            write_result_json(cfg["forced_key"], str(json_path), t, "sat", sol, obj=D)
-                            print(f"[{cfg['forced_key']}] status=sat time={t:.3f}s obj={D}")
+                    else:
+                        write_result_json(cfg["forced_key"], str(json_path), TIME_LIMIT, "timeout", [], obj=None)
+                        print(f"[{cfg['forced_key']}] skipped (external optimization disabled)")
         return
 
     if not args.all:
         backend = args.backend
         sym = bool(args.sym)
         pins = max(0, int(args.pin_team1))
+
         for n in N_VALUES:
             json_path = out_dir / f"{n}.json"
             print(f"\n=== SMT solver={backend} n={n} ===")
 
             if args.opt:
-                best = None
-                for D in range(0, int(args.maxD) + 1):
-                    t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pins, max_diff=D, backend=backend)
+                if backend == "z3":
+                    # Z3 Optimize(): single run to get D*
+                    base_key = "SMT_Z3_BOOL_OPT"
+                    if sym:
+                        base_key += "_SB"
+                    if pins > 0:
+                        base_key += f"_pin1w{pins}"
+
+                    t, st, sol, Dstar = run_one(
+                        n, sym=sym, pin_team1_weeks=pins, max_diff=None, backend="z3", z3_opt=True
+                    )
                     if st == "sat":
-                        best = (D, t, sol)
-                        break
-
-                base_key = f"SMT_{backend.upper()}_BOOL_OPT"
-                if sym:
-                    base_key += "_SB"
-                if pins > 0:
-                    base_key += f"_pin1w{pins}"
-
-                if best is None:
-                    write_result_json(base_key, str(json_path), TIME_LIMIT, "timeout", [], obj=None)
-                    print(f"[{base_key}] status=timeout")
+                        write_result_json(base_key, str(json_path), t, "sat", sol, obj=Dstar)
+                        print(f"[{base_key}] status=sat time={t:.3f}s obj={Dstar}")
+                    else:
+                        write_result_json(base_key, str(json_path), TIME_LIMIT, "timeout", [], obj=None)
+                        print(f"[{base_key}] status=timeout")
                 else:
-                    D, t, sol = best
-                    key = base_key + f"_D{D}"
-                    write_result_json(key, str(json_path), t, "sat", sol, obj=D)
-                    print(f"[{key}] status=sat time={t:.3f}s obj={D}")
+                    print(f"[SMT_{backend.upper()}_BOOL_OPT] skipped (external optimization disabled)")
+                    continue
             else:
-                t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pins, max_diff=None, backend=backend)
+                # Decision
+                if backend == "z3":
+                    t, st, sol, _ = run_one(n, sym=sym, pin_team1_weeks=pins, max_diff=None, backend="z3", z3_opt=False)
+                else:
+                    t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pins, max_diff=None, backend=backend)
+
                 key = f"SMT_{backend.upper()}_DECISION"
                 if sym:
                     key += "_SB"
@@ -365,6 +387,7 @@ def main():
                 print(f"[{key}] status={st} time={t:.3f}s")
         return
 
+    # run-all combinations path 
     selected_backends = ["z3", "cvc5", "opensmt"]
     if args.backends.strip():
         selected_backends = [b.strip() for b in args.backends.split(",") if b.strip()]
@@ -381,6 +404,9 @@ def main():
 
     approaches = build_approaches(selected_backends, selected_modes, selected_sb, selected_pins, args.maxD)
 
+    # External optimization removed: keep opt only for z3
+    approaches = [cfg for cfg in approaches if (not cfg["opt"]) or cfg["backend"] == "z3"]
+
     for n in N_VALUES:
         json_path = out_dir / f"{n}.json"
         print(f"\n=== SMT n={n} ===")
@@ -390,26 +416,29 @@ def main():
             pin = cfg["pin"]
 
             if not cfg["opt"]:
-                t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend=backend)
+                if backend == "z3":
+                    t, st, sol, _ = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend="z3", z3_opt=False)
+                else:
+                    t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend=backend)
+
                 key = key_for(cfg)
                 write_result_json(key, str(json_path), t, st, sol, obj=None)
                 print(f"[{key}] status={st} time={t:.3f}s")
             else:
-                best = None
-                for D in range(0, int(cfg["maxD"]) + 1):
-                    t, st, sol = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=D, backend=backend)
+                if backend == "z3":
+                    # Z3 Optimize(): single run, no D suffix in key_for
+                    key = key_for(cfg)  # no _D
+                    t, st, sol, Dstar = run_one(n, sym=sym, pin_team1_weeks=pin, max_diff=None, backend="z3", z3_opt=True)
                     if st == "sat":
-                        best = (D, t, sol)
-                        break
-                if best is None:
+                        write_result_json(key, str(json_path), t, "sat", sol, obj=Dstar)
+                        print(f"[{key}] status=sat time={t:.3f}s obj={Dstar}")
+                    else:
+                        write_result_json(key, str(json_path), TIME_LIMIT, "timeout", [], obj=None)
+                        print(f"[{key}] status=timeout")
+                else:
                     key = key_for(cfg)
                     write_result_json(key, str(json_path), TIME_LIMIT, "timeout", [], obj=None)
-                    print(f"[{key}] status=timeout")
-                else:
-                    D, t, sol = best
-                    key = key_for(cfg, D=D)
-                    write_result_json(key, str(json_path), t, "sat", sol, obj=D)
-                    print(f"[{key}] status=sat time={t:.3f}s obj={D}")
+                    print(f"[{key}] skipped (external optimization disabled)")
 
 
 if __name__ == "__main__":

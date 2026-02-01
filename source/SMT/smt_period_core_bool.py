@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from z3 import Solver, Bool, Not, SolverFor, PbEq, PbLe, PbGe, Implies, And, Optimize
+from z3 import Solver, Bool, Not, SolverFor, PbEq, PbLe, PbGe, Implies, And, Optimize, Int, If, Sum
 from round_robin import circle_method_pairs
 
 
@@ -69,7 +69,7 @@ def build_model(
     if len(seen) != n * (n - 1) // 2:
         raise RuntimeError("Bad RR: not all pairs generated")
     
-    if optimize():
+    if optimize:
         s = Optimize()
         solver_tag = "Z3_OPT"
     else:
@@ -148,34 +148,40 @@ def build_model(
        #for m in range(M):
        #    s.add(X[aw][m][m])
 
-        if max_diff is not None:
-            if home is None:
-                raise ValueError("Fairness requires with_home=True")
+    D_var = None
+    if max_diff is not None or optimize:
+        if home is None:
+            raise ValueError("Fairness requires with_home=True")
 
-            from z3 import If, Sum
+        # Create the optimization variable if needed
+        if optimize:
+            D_var = Int("D")
+            # Tight bounds: W is odd => D >= 1, always D <= W
+            s.add(D_var >= 1)
+            s.add(D_var <= W)
+        else:
+            D_var = max_diff  # fixed bound (int)
 
-            # Symmetry break for home/away:
-            # Flipping all home[w][m] yields an equivalent solution
-            # Fix one arbitrary match orientation to cut that symmetry.
-            s.add(home[0][0])
+        # Break global flip symmetry for home bits
+        s.add(home[0][0])
 
-            for t in range(1, n + 1):
-                terms = []
-                for w in range(W):
-                    m = match_of[w][t]
-                    a, b = weeks[w][m]
+        for t in range(1, n + 1):
+            terms = []
+            for w in range(W):
+                m = match_of[w][t]
+                a, b = weeks[w][m]
+                if t == a:
+                    terms.append(If(home[w][m], 1, 0))
+                else:
+                    terms.append(If(home[w][m], 0, 1))
 
-                    # home[w][m] == True means 'a' is home, else 'b' is home.
-                    if t == a:
-                        terms.append(If(home[w][m], 1, 0))
-                    else:
-                        terms.append(If(home[w][m], 0, 1))
+            hg = Sum(terms)
 
-                hg = Sum(terms)  # number of home games for team t
+            # |2*hg - W| <= D_var
+            s.add(2 * hg - W <= D_var)
+            s.add(W - 2 * hg <= D_var)
 
-                # |2*hg - W| <= max_diff
-                s.add(2 * hg - W <= max_diff)
-                s.add(W - 2 * hg <= max_diff)
+        if optimize:
+            s.minimize(D_var)
 
-
-    return s, weeks, X, home, W, P
+    return s, weeks, X, home, W, P, D_var

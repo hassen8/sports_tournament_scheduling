@@ -29,7 +29,7 @@ def write_result_json(approach_name, json_path, solve_time, status, solution_mat
             "obj": None,
             "sol": []
         }
-    else:  # timeout / unknown
+    else:
         entry = {
             "time": 300,
             "optimal": False,

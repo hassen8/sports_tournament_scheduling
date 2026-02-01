@@ -88,10 +88,11 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=0)
     parser.add_argument("--sym", action="store_true", help="enable symmetry breaking")
     parser.add_argument("--anchor_week", type=int, default=0)
+    parser.add_argument("--all", action="store_true", help="run both glucose and glucose_sb for all n")
     args = parser.parse_args()
 
-    if args.n == 0:
-        N_VALUES = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
+    if args.all or args.n == 0:
+        N_VALUES = [6, 8, 10, 12, 14, 16, 18, 20, 22]
     else:
         N_VALUES = [args.n]
 
@@ -99,55 +100,60 @@ if __name__ == "__main__":
         print(f"\n====== Running n = {n} ======")
         json_path = OUTPUT_DIR / f"{n}.json"
 
-        approach = "glucose_sb" if args.sym else "glucose"
+        sym_values = [args.sym]
+        if args.all:
+            sym_values = [False, True]
 
-        start_all = time.time()
+        for sym in sym_values:
+            approach = "glucose_sb" if sym else "glucose"
 
-        try:
-            cnf_path, reverse_map, pairings = generate_dimacs(n, use_sym=args.sym)
-        except Exception as e:
-            print(f"[{approach}] CNF generation failed: {e}")
-            safe_update_json(json_path, {approach: timeout_result()})
-            continue
+            start_all = time.time()
 
-        status, output = run_glucose(cnf_path)
-
-        # includes DIMACS gen + solver time
-        elapsed = time.time() - start_all
-
-        if status == "sat":
-            print(f"[{approach}] n={n} SAT time={elapsed:.3f}s, decoding...")
-
-            assignments = sat_decode.parse_glucose_solution(output)
-            sol = sat_decode.decode_schedule(assignments, reverse_map, pairings, n)
-
-            if sol is None:
-                print(f"[{approach}] decoding failed -> marking as timeout")
+            try:
+                cnf_path, reverse_map, pairings = generate_dimacs(n, use_sym=sym)
+            except Exception as e:
+                print(f"[{approach}] CNF generation failed: {e}")
                 safe_update_json(json_path, {approach: timeout_result()})
                 continue
 
-            safe_update_json(json_path, {
-                approach: {
-                    "time": int(min(elapsed, TIMEOUT)),
-                    "optimal": True,
-                    "obj": None,
-                    "sol": sol
-                }
-            })
+            status, output = run_glucose(cnf_path)
 
-        elif status == "unsat":
-            print(f"[{approach}] n={n} UNSAT time={elapsed:.3f}s")
-            safe_update_json(json_path, {
-                approach: {
-                    "time": int(min(elapsed, TIMEOUT)),
-                    "optimal": True,
-                    "obj": None,
-                    "sol": []
-                }
-            })
+            elapsed = time.time() - start_all
 
-        else:
-            print(f"[{approach}] n={n} TIMEOUT/UNKNOWN -> marking time=300")
-            safe_update_json(json_path, {approach: timeout_result()})
+            if status == "sat":
+                print(f"[{approach}] n={n} SAT time={elapsed:.3f}s, decoding...")
+
+                assignments = sat_decode.parse_glucose_solution(output)
+                sol = sat_decode.decode_schedule(assignments, reverse_map, pairings, n)
+
+                if sol is None:
+                    print(f"[{approach}] decoding failed -> marking as timeout")
+                    safe_update_json(json_path, {approach: timeout_result()})
+                    continue
+
+                safe_update_json(json_path, {
+                    approach: {
+                        "time": int(min(elapsed, TIMEOUT)),
+                        "optimal": True,
+                        "obj": None,
+                        "sol": sol
+                    }
+                })
+
+            elif status == "unsat":
+                print(f"[{approach}] n={n} UNSAT time={elapsed:.3f}s")
+                safe_update_json(json_path, {
+                    approach: {
+                        "time": int(min(elapsed, TIMEOUT)),
+                        "optimal": True,
+                        "obj": None,
+                        "sol": []
+                    }
+                })
+
+            else:
+                print(f"[{approach}] n={n} TIMEOUT/UNKNOWN -> marking time=300")
+                safe_update_json(json_path, {approach: timeout_result()})
+
 
     print("\nDone.\n")
