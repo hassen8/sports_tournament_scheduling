@@ -35,7 +35,7 @@ OUTPUT_DIR = ROOT / "res" / "CP"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Default N list
-ALL_N = [6, 8, 10, 12, 14, 16, 18, 20, 22]
+ALL_N = [6, 8, 10, 12, 14, 16, 18, 20]
 N_VALUES = ALL_N if args.n == 0 else [int(args.n)]
 
 MODEL_NAMES = {
